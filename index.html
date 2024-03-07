@@ -21,16 +21,14 @@
     const transitionDuration = 60 * 60; // 60 seconds for the transition
 
     const stars = [];
-    const numStars = 1500;
+    const numStars = 500;
 
     for (let i = 0; i < numStars; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         size: Math.random() * 2,
-        alpha: Math.random() * 0.8 + 0.2,
-        layer: Math.floor(Math.random() * 5), // Assign a layer (0 to 4)
-        twinkleSpeed: Math.random() * 0.05 + 0.01
+        alpha: Math.random()
       });
     }
 
@@ -53,22 +51,16 @@
         skyColor = dayColor;
       }
 
-      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, `rgb(${skyColor[0]}, ${skyColor[1]}, ${skyColor[2]})`);
-      gradient.addColorStop(1, `rgb(${skyColor[0] * 0.3}, ${skyColor[1] * 0.3}, ${skyColor[2] * 0.3})`);
-      ctx.fillStyle = gradient;
+      ctx.fillStyle = `rgb(${skyColor[0]}, ${skyColor[1]}, ${skyColor[2]})`;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Stars
+      ctx.fillStyle = 'white';
       stars.forEach(star => {
-        const alpha = star.alpha * (1 - dayProgress / (dayDuration + transitionDuration));
-        const twinkleOffset = Math.sin(Date.now() * star.twinkleSpeed) * 0.3;
-        const color = `rgba(255, 255, 255, ${alpha + twinkleOffset})`;
-
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size * (1 - star.layer * 0.3), 0, Math.PI * 2);
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.closePath();
-        ctx.fillStyle = color;
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * (1 - dayProgress / (dayDuration + transitionDuration))})`;
         ctx.fill();
       });
 
