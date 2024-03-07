@@ -29,7 +29,7 @@
         y: Math.random() * canvas.height,
         size: Math.random() * 2,
         alpha: Math.random(),
-        twinkleSpeed: Math.random() * 0.02 + 0.005
+        twinkleSpeed: Math.random() * 0.01 + 0.005
       });
     }
 
@@ -78,30 +78,30 @@
 
       // Sky color transition
       const nightColor = [0, 0, 50];
-      const sunriseColor = [255, 140, 0];
+      const sunriseColor1 = [255, 140, 100];
+      const sunriseColor2 = [255, 200, 150];
       const dayColor = [135, 206, 235];
-      const sunsetColor = [255, 100, 0];
 
       let skyColor;
       if (dayProgress < dayDuration) {
         skyColor = nightColor;
-      } else if (dayProgress < dayDuration + transitionDuration * 0.3) {
-        const progress = (dayProgress - dayDuration) / (transitionDuration * 0.3);
+      } else if (dayProgress < dayDuration + transitionDuration * 0.2) {
+        const progress = (dayProgress - dayDuration) / (transitionDuration * 0.2);
         skyColor = nightColor.map((color, index) => {
-          return color + (sunriseColor[index] - color) * progress;
+          return color + (sunriseColor1[index] - color) * progress;
         });
-      } else if (dayProgress < dayDuration + transitionDuration * 0.7) {
-        const progress = (dayProgress - dayDuration - transitionDuration * 0.3) / (transitionDuration * 0.4);
-        skyColor = sunriseColor.map((color, index) => {
+      } else if (dayProgress < dayDuration + transitionDuration * 0.4) {
+        const progress = (dayProgress - dayDuration - transitionDuration * 0.2) / (transitionDuration * 0.2);
+        skyColor = sunriseColor1.map((color, index) => {
+          return color + (sunriseColor2[index] - color) * progress;
+        });
+      } else if (dayProgress < dayDuration + transitionDuration * 0.6) {
+        const progress = (dayProgress - dayDuration - transitionDuration * 0.4) / (transitionDuration * 0.2);
+        skyColor = sunriseColor2.map((color, index) => {
           return color + (dayColor[index] - color) * progress;
         });
-      } else if (dayProgress < dayDuration + transitionDuration) {
-        const progress = (dayProgress - dayDuration - transitionDuration * 0.7) / (transitionDuration * 0.3);
-        skyColor = dayColor.map((color, index) => {
-          return color + (sunsetColor[index] - color) * progress;
-        });
       } else {
-        skyColor = nightColor;
+        skyColor = dayColor;
       }
 
       ctx.fillStyle = `rgb(${skyColor[0]}, ${skyColor[1]}, ${skyColor[2]})`;
@@ -110,8 +110,8 @@
       // Stars
       ctx.fillStyle = 'white';
       stars.forEach(star => {
-        const twinkleOffset = Math.sin(Date.now() * star.twinkleSpeed) * 0.2;
-        const alpha = star.alpha * (1 - dayProgress / (dayDuration + transitionDuration)) + twinkleOffset;
+        const twinkleOffset = Math.sin(Date.now() * star.twinkleSpeed) * 0.1;
+        const alpha = star.alpha * (1 - dayProgress / (dayDuration + transitionDuration * 0.6)) + twinkleOffset;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.closePath();
@@ -120,10 +120,10 @@
       });
 
       // Sun
-      if (dayProgress >= dayDuration + transitionDuration * 0.3) {
-        const sunProgress = (dayProgress - dayDuration - transitionDuration * 0.3) / (transitionDuration * 0.7);
+      if (dayProgress >= dayDuration + transitionDuration * 0.4) {
+        const sunProgress = (dayProgress - dayDuration - transitionDuration * 0.4) / (transitionDuration * 0.6);
         const sunX = sunProgress * canvas.width;
-        const sunY = canvas.height * 0.2 + Math.sin(sunProgress * Math.PI) * canvas.height * 0.1;
+        const sunY = canvas.height * 0.2;
 
         sunParticles.forEach(particle => {
           particle.angle += 0.005;
@@ -131,26 +131,19 @@
           particle.y = sunY + Math.sin(particle.angle) * particle.distance;
         });
 
-        let sunColor;
-        if (sunProgress < 0.5) {
-          sunColor = [255, 255, 0];
-        } else {
-          sunColor = sunsetColor;
-        }
-
-        ctx.fillStyle = `rgba(${sunColor[0]}, ${sunColor[1]}, ${sunColor[2]}, 0.8)`;
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
 
         sunParticles.forEach(particle => {
           ctx.beginPath();
           ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
           ctx.closePath();
-          ctx.fillStyle = `rgba(${sunColor[0]}, ${sunColor[1]}, ${sunColor[2]}, ${particle.alpha})`;
+          ctx.fillStyle = `rgba(255, 255, 0, ${particle.alpha})`;
           ctx.fill();
         });
       }
 
       // Clouds
-      if (dayProgress >= dayDuration) {
+      if (dayProgress >= dayDuration + transitionDuration * 0.6) {
         if (Math.random() < 0.01) {
           spawnCloud();
         }
