@@ -21,16 +21,54 @@
     const transitionDuration = 60 * 60; // 60 seconds for the transition
 
     const stars = [];
-    const numStars = 500;
+    const numStars = 1000;
 
     for (let i = 0; i < numStars; i++) {
       stars.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         size: Math.random() * 2,
-        alpha: Math.random()
+        alpha: Math.random(),
+        twinkleSpeed: Math.random() * 0.05 + 0.01
       });
     }
+
+    const sunParticles = [];
+    const numSunParticles = 5000;
+
+    for (let i = 0; i < numSunParticles; i++) {
+      sunParticles.push({
+        x: 0,
+        y: 0,
+        size: Math.random() * 1.5,
+        alpha: Math.random(),
+        angle: Math.random() * Math.PI * 2,
+        distance: Math.random() * 60
+      });
+    }
+
+    function createCloud(x, y, size) {
+      const cloudParticles = [];
+      const numCloudParticles = size * 10;
+
+      for (let i = 0; i < numCloudParticles; i++) {
+        cloudParticles.push({
+          x: x + Math.random() * size,
+          y: y + Math.random() * size,
+          size: Math.random() * 3,
+          alpha: Math.random() * 0.5 + 0.5,
+          speed: Math.random() * 0.5 + 0.5
+        });
+      }
+
+      return cloudParticles;
+    }
+
+    const clouds = [
+      createCloud(canvas.width * 0.2, canvas.height * 0.2, 80),
+      createCloud(canvas.width * 0.7, canvas.height * 0.3, 120),
+      createCloud(canvas.width * 0.4, canvas.height * 0.4, 100)
+    ];
 
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -51,18 +89,61 @@
         skyColor = dayColor;
       }
 
-      ctx.fillStyle = `rgb(${skyColor[0]}, ${skyColor[1]}, ${skyColor[2]})`;
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, `rgb(${skyColor[0]}, ${skyColor[1]}, ${skyColor[2]})`);
+      gradient.addColorStop(1, `rgb(${skyColor[0] * 0.3}, ${skyColor[1] * 0.3}, ${skyColor[2] * 0.3})`);
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Stars
       ctx.fillStyle = 'white';
       stars.forEach(star => {
+        const twinkleOffset = Math.sin(Date.now() * star.twinkleSpeed) * 0.3;
+        const alpha = star.alpha * (1 - dayProgress / (dayDuration + transitionDuration)) + twinkleOffset;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.closePath();
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha * (1 - dayProgress / (dayDuration + transitionDuration))})`;
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.fill();
       });
+
+      // Sun
+      if (dayProgress >= dayDuration + transitionDuration * 0.8) {
+        const sunX = (dayProgress - dayDuration - transitionDuration * 0.8) / (transitionDuration * 0.2) * canvas.width;
+
+        sunParticles.forEach(particle => {
+          particle.angle += 0.005;
+          particle.x = sunX + Math.cos(particle.angle) * particle.distance;
+          particle.y = canvas.height * 0.2 + Math.sin(particle.angle) * particle.distance;
+        });
+
+        ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+
+        sunParticles.forEach(particle => {
+          ctx.beginPath();
+          ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.fillStyle = `rgba(255, 255, 0, ${particle.alpha})`;
+          ctx.fill();
+        });
+      }
+
+      // Clouds
+      if (dayProgress >= dayDuration) {
+        clouds.forEach(cloud => {
+          cloud.forEach(particle => {
+            particle.x -= particle.speed;
+            if (particle.x < -50) {
+              particle.x = canvas.width + 50;
+            }
+            ctx.beginPath();
+            ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fillStyle = `rgba(255, 255, 255, ${particle.alpha})`;
+            ctx.fill();
+          });
+        });
+      }
 
       dayProgress++;
       requestAnimationFrame(animate);
