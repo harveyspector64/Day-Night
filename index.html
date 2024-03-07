@@ -28,9 +28,9 @@
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
         size: Math.random() * 2,
-        alpha: Math.random(),
+        alpha: Math.random() * 0.8 + 0.2,
         layer: Math.floor(Math.random() * 5), // Assign a layer (0 to 4)
-        twinkleSpeed: Math.random() * 0.02 + 0.005
+        twinkleSpeed: Math.random() * 0.05 + 0.01
       });
     }
 
@@ -57,20 +57,18 @@
       const dayColor = [135, 206, 235];
 
       let skyColor;
-      if (dayProgress < dayDuration * 0.5) {
+      if (dayProgress < dayDuration) {
         skyColor = nightColor;
-      } else if (dayProgress < dayDuration * 0.7) {
-        const progress = (dayProgress - dayDuration * 0.5) / (dayDuration * 0.2);
+      } else if (dayProgress < dayDuration + transitionDuration * 0.7) {
+        const progress = (dayProgress - dayDuration) / (transitionDuration * 0.7);
         skyColor = nightColor.map((color, index) => {
           return color + (sunriseColor[index] - color) * progress;
         });
-      } else if (dayProgress < dayDuration) {
-        const progress = (dayProgress - dayDuration * 0.7) / (dayDuration * 0.3);
+      } else {
+        const progress = (dayProgress - dayDuration - transitionDuration * 0.7) / (transitionDuration * 0.3);
         skyColor = sunriseColor.map((color, index) => {
           return color + (dayColor[index] - color) * progress;
         });
-      } else {
-        skyColor = dayColor;
       }
 
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
@@ -81,8 +79,9 @@
 
       // Stars
       stars.forEach(star => {
-        const alpha = star.alpha + Math.sin(Date.now() * star.twinkleSpeed) * 0.3;
-        const color = `rgba(255, 255, 255, ${alpha * (1 - dayProgress / dayDuration)})`;
+        const alpha = star.alpha * (1 - dayProgress / (dayDuration + transitionDuration));
+        const twinkleOffset = Math.sin(Date.now() * star.twinkleSpeed) * 0.3;
+        const color = `rgba(255, 255, 255, ${alpha + twinkleOffset})`;
 
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size * (1 - star.layer * 0.3), 0, Math.PI * 2);
@@ -92,8 +91,8 @@
       });
 
       // Sun
-      if (dayProgress >= dayDuration * 0.8) {
-        const sunX = (dayProgress - dayDuration * 0.8) / (dayDuration * 0.2) * canvas.width;
+      if (dayProgress >= dayDuration + transitionDuration * 0.8) {
+        const sunX = (dayProgress - dayDuration - transitionDuration * 0.8) / (transitionDuration * 0.2) * canvas.width;
 
         sunParticles.forEach(particle => {
           particle.angle += 0.005;
