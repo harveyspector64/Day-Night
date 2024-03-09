@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Night Sky Game</title>
+  <title>Day-Night Cycle</title>
   <style>
     body { margin: 0; overflow: hidden; }
     canvas { width: 100%; height: 100%; }
@@ -16,9 +16,8 @@
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let dayProgress = 0;
-    const dayDuration = 60 * 30; // 30 seconds in frames (assuming 60 FPS)
-    const transitionDuration = 60 * 60; // 60 seconds for the transition
+    let cycleProgress = 0;
+    const cycleDuration = 60 * 60; // 60 seconds in frames (assuming 60 FPS)
 
     const stars = [];
     const numStars = 1500;
@@ -40,10 +39,10 @@
       sunParticles.push({
         x: 0,
         y: 0,
-        size: Math.random() * 1.5,
+        size: Math.random() * 2,
         alpha: Math.random(),
         angle: Math.random() * Math.PI * 2,
-        distance: Math.random() * 80
+        distance: Math.random() * 100
       });
     }
 
@@ -73,45 +72,61 @@
       clouds.push(createCloud(x, y, size));
     }
 
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Sky color transition
+    function getSkyColor(progress) {
       const nightColor = [0, 0, 50];
       const sunriseColor1 = [255, 140, 100];
       const sunriseColor2 = [255, 200, 150];
       const dayColor = [135, 206, 235];
+      const sunsetColor1 = [255, 140, 100];
+      const sunsetColor2 = [255, 100, 80];
 
-      let skyColor;
-      if (dayProgress < dayDuration) {
-        skyColor = nightColor;
-      } else if (dayProgress < dayDuration + transitionDuration * 0.2) {
-        const progress = (dayProgress - dayDuration) / (transitionDuration * 0.2);
-        skyColor = nightColor.map((color, index) => {
-          return color + (sunriseColor1[index] - color) * progress;
-        });
-      } else if (dayProgress < dayDuration + transitionDuration * 0.4) {
-        const progress = (dayProgress - dayDuration - transitionDuration * 0.2) / (transitionDuration * 0.2);
-        skyColor = sunriseColor1.map((color, index) => {
-          return color + (sunriseColor2[index] - color) * progress;
-        });
-      } else if (dayProgress < dayDuration + transitionDuration * 0.6) {
-        const progress = (dayProgress - dayDuration - transitionDuration * 0.4) / (transitionDuration * 0.2);
-        skyColor = sunriseColor2.map((color, index) => {
-          return color + (dayColor[index] - color) * progress;
-        });
+      if (progress < 0.2) {
+        return nightColor;
+      } else if (progress < 0.3) {
+        const t = (progress - 0.2) / 0.1;
+        return lerpColor(nightColor, sunriseColor1, t);
+      } else if (progress < 0.4) {
+        const t = (progress - 0.3) / 0.1;
+        return lerpColor(sunriseColor1, sunriseColor2, t);
+      } else if (progress < 0.5) {
+        const t = (progress - 0.4) / 0.1;
+        return lerpColor(sunriseColor2, dayColor, t);
+      } else if (progress < 0.7) {
+        return dayColor;
+      } else if (progress < 0.8) {
+        const t = (progress - 0.7) / 0.1;
+        return lerpColor(dayColor, sunsetColor1, t);
+      } else if (progress < 0.9) {
+        const t = (progress - 0.8) / 0.1;
+        return lerpColor(sunsetColor1, sunsetColor2, t);
       } else {
-        skyColor = dayColor;
+        const t = (progress - 0.9) / 0.1;
+        return lerpColor(sunsetColor2, nightColor, t);
       }
+    }
 
-      ctx.fillStyle = `rgb(${skyColor[0]}, ${skyColor[1]}, ${skyColor[2]})`;
+    function lerpColor(color1, color2, t) {
+      return color1.map((c, i) => Math.round(c + (color2[i] - c) * t));
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const progress = (cycleProgress % cycleDuration) / cycleDuration;
+
+      // Sky color
+      const skyColor = getSkyColor(progress);
+      const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      skyGradient.addColorStop(0, `rgb(${skyColor[0]}, ${skyColor[1]}, ${skyColor[2]})`);
+      skyGradient.addColorStop(1, `rgb(${skyColor[0] * 0.5}, ${skyColor[1] * 0.5}, ${skyColor[2] * 0.5})`);
+      ctx.fillStyle = skyGradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Stars
       ctx.fillStyle = 'white';
       stars.forEach(star => {
-        const twinkleOffset = Math.sin(Date.now() * star.twinkleSpeed) * 0.1;
-        const alpha = star.alpha * (1 - dayProgress / (dayDuration + transitionDuration * 0.6)) + twinkleOffset;
+        const twinkleOffset = Math.sin(cycleProgress * star.twinkleSpeed) * 0.1;
+        const alpha = star.alpha * (1 - Math.min(progress, 0.5) * 2) + twinkleOffset;
         ctx.beginPath();
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
         ctx.closePath();
@@ -120,9 +135,8 @@
       });
 
       // Sun
-      if (dayProgress >= dayDuration + transitionDuration * 0.4) {
-        const sunProgress = (dayProgress - dayDuration - transitionDuration * 0.4) / (transitionDuration * 0.6);
-        const sunX = sunProgress * canvas.width;
+      if (progress >= 0.2 && progress <= 0.8) {
+        const sunX = (progress - 0.2) / 0.6 * canvas.width;
         const sunY = canvas.height * 0.2;
 
         sunParticles.forEach(particle => {
@@ -143,8 +157,8 @@
       }
 
       // Clouds
-      if (dayProgress >= dayDuration + transitionDuration * 0.6) {
-        if (Math.random() < 0.01) {
+      if (progress >= 0.4 && progress <= 0.9) {
+        if (Math.random() < 0.005) {
           spawnCloud();
         }
 
@@ -164,7 +178,7 @@
         });
       }
 
-      dayProgress++;
+      cycleProgress++;
       requestAnimationFrame(animate);
     }
 
